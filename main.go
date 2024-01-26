@@ -8,8 +8,8 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/4armed/httpserver/pkg/certs/selfsigned"
 	"github.com/caddyserver/certmagic"
+	"github.com/theoffensivecoder/httpserver/pkg/certs/selfsigned"
 )
 
 var (

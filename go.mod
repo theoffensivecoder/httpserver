@@ -1,4 +1,4 @@
-module github.com/4armed/httpserver
+module github.com/theoffensivecoder/httpserver
 
 go 1.21
 
