@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/caddyserver/certmagic"
 	"github.com/theoffensivecoder/httpserver/pkg/certs/selfsigned"
@@ -29,8 +30,12 @@ var (
 func main() {
 	flag.Parse()
 
+	if !strings.HasSuffix(*path, "/") {
+		*path = *path + "/"
+	}
+
 	mux := http.NewServeMux()
-	mux.Handle(*path, loggingMiddleware(dodgyCorsMiddleware(http.FileServer(http.Dir(*staticDir)))))
+	mux.Handle(*path, loggingMiddleware(dodgyCorsMiddleware(http.StripPrefix(*path, http.FileServer(http.Dir(*staticDir))))))
 
 	if *useTLS {
 		if *useAcme {
@@ -58,7 +63,7 @@ func main() {
 			tlsListener := tls.NewListener(ln, config)
 
 			if !*quiet {
-				fmt.Printf("Listening on https://%s\n", *listenAddr)
+				fmt.Printf("Listening on https://%s%s\n", *listenAddr, *path)
 			}
 			err = http.Serve(tlsListener, mux)
 			if err != nil {
@@ -67,7 +72,7 @@ func main() {
 		}
 	} else {
 		if !*quiet {
-			fmt.Printf("Listening on http://%s\n", *listenAddr)
+			fmt.Printf("Listening on http://%s%s\n", *listenAddr, *path)
 		}
 		err := http.ListenAndServe(*listenAddr, mux)
 		if err != nil {
