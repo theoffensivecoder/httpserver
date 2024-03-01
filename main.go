@@ -22,6 +22,7 @@ var (
 	listenAddr   = flag.String("listen-addr", "127.0.0.1:8081", "Listen address")
 	useDodgyCors = flag.Bool("dodgy-cors", false, "Enable dodgy CORS")
 	staticDir    = flag.String("static-dir", ".", "Serve static files from this directory")
+	path         = flag.String("path", "/", "path to serve content at")
 	quiet        = flag.Bool("quiet", false, "Quiet mode")
 )
 
@@ -29,7 +30,7 @@ func main() {
 	flag.Parse()
 
 	mux := http.NewServeMux()
-	mux.Handle("/", loggingMiddleware(dodgyCorsMiddleware(http.FileServer(http.Dir(*staticDir)))))
+	mux.Handle(*path, loggingMiddleware(dodgyCorsMiddleware(http.FileServer(http.Dir(*staticDir)))))
 
 	if *useTLS {
 		if *useAcme {
