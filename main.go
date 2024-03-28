@@ -35,7 +35,21 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle(*path, loggingMiddleware(dodgyCorsMiddleware(http.StripPrefix(*path, http.FileServer(http.Dir(*staticDir))))))
+	mux.Handle(
+		*path,
+		loggingMiddleware(
+			dodgyCorsMiddleware(
+				cachingMiddleware(
+					http.StripPrefix(
+						*path,
+						http.FileServer(
+							http.Dir(*staticDir),
+						),
+					),
+				),
+			),
+		),
+	)
 
 	if *useTLS {
 		if *useAcme {
@@ -79,6 +93,13 @@ func main() {
 			panic(err)
 		}
 	}
+}
+
+func cachingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Cache-Control", "no-cache")
+		next.ServeHTTP(w, r)
+	})
 }
 
 func dodgyCorsMiddleware(next http.Handler) http.Handler {
