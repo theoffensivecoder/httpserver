@@ -14,21 +14,28 @@ import (
 )
 
 var (
-	hostname = flag.String("hostname", "localhost.localdomain", "Hostname for HTTP server")
-	useAcme  = flag.Bool("acme", false, "Use ACME to get TLS certificate")
-	email    = flag.String("email", "httpserver@4armed.com", "Email address for certificate")
-	useTLS   = flag.Bool("tls", false, "Use TLS")
-	// flag.StringVar(&o.PrivateKeyFile, "private-key-file", "server.key", "Private key file")
-	// flag.StringVar(&o.CertFile, "cert-file", "server.crt", "Certificate file")
+	version      = "dev"
+	hostname     = flag.String("hostname", "localhost.localdomain", "Hostname for HTTP server")
+	useAcme      = flag.Bool("acme", false, "Use ACME to get TLS certificate")
+	email        = flag.String("email", "httpserver@4armed.com", "Email address for certificate")
+	useTLS       = flag.Bool("tls", false, "Use TLS")
+	keyFile      = flag.String("key-file", "server.key", "Private key file")
+	certFile     = flag.String("cert-file", "server.crt", "Certificate file")
 	listenAddr   = flag.String("listen-addr", "127.0.0.1:8081", "Listen address")
 	useDodgyCors = flag.Bool("dodgy-cors", false, "Enable dodgy CORS")
 	staticDir    = flag.String("static-dir", ".", "Serve static files from this directory")
 	path         = flag.String("path", "/", "path to serve content at")
 	quiet        = flag.Bool("quiet", false, "Quiet mode")
+	printVersion = flag.Bool("version", false, "Print version")
 )
 
 func main() {
 	flag.Parse()
+
+	if *printVersion {
+		fmt.Println(version)
+		return
+	}
 
 	if !strings.HasSuffix(*path, "/") {
 		*path = *path + "/"
@@ -58,9 +65,19 @@ func main() {
 				panic(err)
 			}
 		} else {
-			tlsCert, err := selfsigned.New(*hostname, *email)
-			if err != nil {
-				panic(err)
+			var tlsCert tls.Certificate
+			var err error
+
+			if *certFile != "" && *keyFile != "" {
+				tlsCert, err = tls.LoadX509KeyPair(*certFile, *keyFile)
+				if err != nil {
+					panic(err)
+				}
+			} else {
+				tlsCert, err = selfsigned.New(*hostname, *email)
+				if err != nil {
+					panic(err)
+				}
 			}
 
 			config := &tls.Config{
