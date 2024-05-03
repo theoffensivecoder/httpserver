@@ -17,12 +17,13 @@ var (
 	version      = "dev"
 	hostname     = flag.String("hostname", "localhost.localdomain", "Hostname for HTTP server")
 	useAcme      = flag.Bool("acme", false, "Use ACME to get TLS certificate")
-	email        = flag.String("email", "httpserver@4armed.com", "Email address for certificate")
+	email        = flag.String("email", "httpserver@offensivecoder.com", "Email address for certificate")
 	useTLS       = flag.Bool("tls", false, "Use TLS")
 	keyFile      = flag.String("key-file", "server.key", "Private key file")
 	certFile     = flag.String("cert-file", "server.crt", "Certificate file")
 	listenAddr   = flag.String("listen-addr", "127.0.0.1:8081", "Listen address")
-	useDodgyCors = flag.Bool("dodgy-cors", false, "Enable dodgy CORS")
+	useCors      = flag.Bool("cors", false, "Enable CORS")
+	corsOrigin   = flag.String("cors-origin", "auto", "CORS origin")
 	staticDir    = flag.String("static-dir", ".", "Serve static files from this directory")
 	path         = flag.String("path", "/", "path to serve content at")
 	quiet        = flag.Bool("quiet", false, "Quiet mode")
@@ -121,25 +122,33 @@ func cachingMiddleware(next http.Handler) http.Handler {
 
 func dodgyCorsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !*useDodgyCors {
+		if !*useCors {
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		if r.Method == "OPTIONS" {
 			w.Header().Add("Access-Control-Allow-Origin", "*")
-			w.Header().Add("Access-Control-Allow-Credentials", "true")
 
 			corsRequestHeaders := r.Header.Get("Access-Control-Request-Headers")
 			if corsRequestHeaders != "" {
 				w.Header().Add("Access-Control-Allow-Headers", corsRequestHeaders)
 			}
 
-			w.WriteHeader(http.StatusOK)
+			w.Header().Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
-		originHeader := r.Header.Get("Origin")
+		var originHeader string
+
+		if *corsOrigin == "auto" {
+			originHeader = r.Header.Get("Origin")
+		} else {
+			originHeader = *corsOrigin
+		}
+
 		if originHeader == "" {
 			next.ServeHTTP(w, r)
 			return
@@ -147,6 +156,8 @@ func dodgyCorsMiddleware(next http.Handler) http.Handler {
 
 		w.Header().Add("Access-Control-Allow-Origin", originHeader)
 		w.Header().Add("Access-Control-Allow-Credentials", "true")
+
+		next.ServeHTTP(w, r)
 	})
 }
 
